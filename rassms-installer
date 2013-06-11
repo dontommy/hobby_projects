@@ -1,4 +1,16 @@
 #!/bin/bash
+echo "Velkommen til Raspberry Pi SMS Setup"
+echo "Vi starter med at ændre alle standard passwords"
+echo "Også password til selve raspberry'en!"
+echo "Brug det samme passwords hele vejen igennem"
+echo " "
+echo "Når MySQL skal installeres:"
+echo "Brug TAB,Space og Enter til at navigere i mysql installationen"
+echo "Vælg apache2 med mellemrumstasten og TAB til at bevæge cursor"
+echo "Sig ja til db-common når den dukker op"
+sudo passwd pi
+sudo passwd root
+sudo apt-get update
 sudo apt-get install modemmanager gammu wammu
 sudo apt-get install tightvncserver
 sudo apt-get install apache2
@@ -11,25 +23,26 @@ sudo apt-get install libapache2-mod-auth-mysql php5-mysql phpmyadmin
 
 sudo sed -i.bak s/';   extension=msql.so'/'extension=msql.so'/g /etc/php5/apache2/php.ini
 sudo /etc/init.d/apache2 restart
+sudo chown pi /var/www/
+cd /var/www/
 if [ ! -f nickysms.tar.gz ]
 then
-  wget http://dontommy.com/nickysms.tar.gz
+	wget http://dontommy.com/installs/nickysms.tar.gz
 fi
-if [ ! -d nickysms ]
-then
-	cd /var/www/
-	tar xvf nickysms.tar.gz
-fi
-if [ ! -d nicky ]
-then
-	echo "Kontakt Tommy Maersk, Noget er galt!"
-fi
+tar xvf nickysms.tar.gz
 echo "Dit MySQL Password:"
 read db_pass
 sed -i.bak s/DBPASSWORD/$db_pass/g /var/www/config.php
 cp /var/www/.gammurc /home/pi/.gammurc
 db="CREATE DATABASE sms_db"
 mysql -u root -p$db_pass -e "$db"
-mysql -u root -p sms_db < /var/www/nickysms/smsdb.sql
-sudo echo "startx" >> /etc/profile
-echo "You are at the end, its all set up... now go have a brew..."
+mysql -u root -p sms_db < /var/www/smsdb.sql
+crontab -l | { cat; echo "*/2 * * * * /usr/bin/php /var/www/thecron.php"; } | crontab -
+crontab -l | { cat; echo "1-59/2 * * * * /usr/bin/php /var/www/thecron2.php"; } | crontab -
+sudo cp /var/www/tightvncserver /etc/init.d/tightvncserver
+sudo chmod 755 /etc/init.d/tightvncserver
+sudo update-rc.d tightvncserver defaults
+sudo adduser pi www-data
+sudo chmod 777 /dev/ttyUSB*
+sudo usermod -a -G dialout www-data
+echo "You are at the end, its all set up... reboot the raspberry and go have a brew..."
